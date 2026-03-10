@@ -54,6 +54,7 @@ import { useHotkeys, useHover } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import {
   IconArrowsMaximize,
+  IconArrowsShuffle,
   IconBell,
   IconCopy,
   IconDeviceFloppy,
@@ -140,6 +141,7 @@ const Tile = forwardRef(
       granularity,
       onTimeRangeSelect,
       filters,
+      dashboardCompareToPreviousPeriod,
 
       // Properties forwarded by grid layout
       className,
@@ -161,6 +163,7 @@ const Tile = forwardRef(
       granularity: SQLInterval | undefined;
       onTimeRangeSelect: (start: Date, end: Date) => void;
       filters?: Filter[];
+      dashboardCompareToPreviousPeriod?: boolean;
 
       // Properties forwarded by grid layout
       className?: string;
@@ -199,7 +202,14 @@ const Tile = forwardRef(
 
     useEffect(() => {
       if (isRawSqlSavedChartConfig(chart.config)) {
-        setQueriedConfig({ ...chart.config, dateRange, granularity });
+        setQueriedConfig({
+          ...chart.config,
+          dateRange,
+          granularity,
+          ...(dashboardCompareToPreviousPeriod && {
+            compareToPreviousPeriod: true,
+          }),
+        });
         return;
       }
 
@@ -227,10 +237,20 @@ const Tile = forwardRef(
             implicitColumnExpression: source.implicitColumnExpression,
             filters,
             metricTables: isMetricSource ? source.metricTables : undefined,
+            ...(dashboardCompareToPreviousPeriod && {
+              compareToPreviousPeriod: true,
+            }),
           });
         }
       }
-    }, [source, chart, dateRange, granularity, filters]);
+    }, [
+      source,
+      chart,
+      dateRange,
+      granularity,
+      filters,
+      dashboardCompareToPreviousPeriod,
+    ]);
 
     const [hovered, setHovered] = useState(false);
 
@@ -811,6 +831,10 @@ function DBDashboardPage({ presetConfig }: { presetConfig?: Dashboard }) {
   };
 
   const [isLive, setIsLive] = useState(false);
+  const [
+    dashboardCompareToPreviousPeriod,
+    setDashboardCompareToPreviousPeriod,
+  ] = useState(false);
 
   const { control, setValue, getValues, handleSubmit } = useForm<{
     granularity: SQLInterval | 'auto';
@@ -1020,6 +1044,7 @@ function DBDashboardPage({ presetConfig }: { presetConfig?: Dashboard }) {
             key={chart.id}
             chart={chart}
             dateRange={searchedTimeRange}
+            dashboardCompareToPreviousPeriod={dashboardCompareToPreviousPeriod}
             onEditClick={() => setEditedTile(chart)}
             granularity={
               isRefreshEnabled
@@ -1123,6 +1148,7 @@ function DBDashboardPage({ presetConfig }: { presetConfig?: Dashboard }) {
       whereLanguage,
       onTimeRangeSelect,
       filterQueries,
+      dashboardCompareToPreviousPeriod,
     ],
   );
 
@@ -1392,6 +1418,22 @@ function DBDashboardPage({ presetConfig }: { presetConfig?: Dashboard }) {
           }}
         />
         <GranularityPickerControlled control={control} name="granularity" />
+        <Tooltip
+          withArrow
+          label="Compare to previous period"
+          fz="xs"
+          color="gray"
+        >
+          <Button
+            onClick={() => setDashboardCompareToPreviousPeriod(prev => !prev)}
+            size="sm"
+            variant={dashboardCompareToPreviousPeriod ? 'primary' : 'secondary'}
+            leftSection={<IconArrowsShuffle size={16} />}
+            title="Compare to previous period"
+          >
+            Compare
+          </Button>
+        </Tooltip>
         <Tooltip
           withArrow
           label={
