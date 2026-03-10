@@ -5,6 +5,7 @@ interface ChartContainerProps {
   toolbarItems?: React.ReactNode[];
   children: React.ReactNode;
   disableReactiveContainer?: boolean;
+  aside?: React.ReactNode;
 }
 
 function ChartContainer({
@@ -12,6 +13,7 @@ function ChartContainer({
   toolbarItems,
   children,
   disableReactiveContainer,
+  aside,
 }: ChartContainerProps) {
   return (
     <Stack h="100%" w="100%" style={{ flexGrow: 1 }}>
@@ -37,24 +39,34 @@ function ChartContainer({
         children
       ) : (
         <div
-          // Hack, recharts will release real fix soon https://github.com/recharts/recharts/issues/172
           style={{
-            position: 'relative',
-            width: '100%',
-            height: '100%',
+            display: 'flex',
+            flex: 1,
+            minHeight: 0,
+            gap: 4,
           }}
         >
           <div
+            // Hack, recharts will release real fix soon https://github.com/recharts/recharts/issues/172
             style={{
-              position: 'absolute',
-              left: 0,
-              right: 0,
-              bottom: 0,
-              top: 0,
+              position: 'relative',
+              flex: 1,
+              minWidth: 0,
             }}
           >
-            {children}
+            <div
+              style={{
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                bottom: 0,
+                top: 0,
+              }}
+            >
+              {children}
+            </div>
           </div>
+          {aside}
         </div>
       )}
     </Stack>

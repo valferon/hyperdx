@@ -49,6 +49,7 @@ import { useSource } from '@/source';
 import ChartContainer from './charts/ChartContainer';
 import DateRangeIndicator from './charts/DateRangeIndicator';
 import DisplaySwitcher from './charts/DisplaySwitcher';
+import LegendTable, { type SeriesStats } from './charts/LegendTable';
 import MVOptimizationIndicator from './MaterializedViews/MVOptimizationIndicator';
 import { SQLPreview } from './ChartSQLPreview';
 
@@ -221,6 +222,7 @@ type DBTimeChartComponentProps = {
   toolbarSuffix?: React.ReactNode[];
   showMVOptimizationIndicator?: boolean;
   showDateRangeIndicator?: boolean;
+  legendAsTable?: boolean;
 };
 
 function DBTimeChartComponent({
@@ -243,6 +245,7 @@ function DBTimeChartComponent({
   toolbarSuffix,
   showMVOptimizationIndicator = true,
   showDateRangeIndicator = true,
+  legendAsTable,
 }: DBTimeChartComponentProps) {
   const [isErrorExpanded, errorExpansion] = useDisclosure(false);
   const [selectedSeriesSet, setSelectedSeriesSet] = useState<Set<string>>(
@@ -415,6 +418,39 @@ function DBTimeChartComponent({
     hiddenSeries,
     previousPeriodOffsetSeconds,
   ]);
+
+  const seriesStats: SeriesStats[] = useMemo(() => {
+    if (!legendAsTable || lineData.length === 0 || graphResults.length === 0) {
+      return [];
+    }
+
+    return lineData.map(ld => {
+      let min = Infinity;
+      let max = -Infinity;
+      let sum = 0;
+      let count = 0;
+
+      for (const row of graphResults) {
+        const val = row[ld.dataKey];
+        if (typeof val === 'number' && !isNaN(val)) {
+          if (val < min) min = val;
+          if (val > max) max = val;
+          sum += val;
+          count++;
+        }
+      }
+
+      return {
+        dataKey: ld.dataKey,
+        displayName: ld.displayName,
+        color: ld.color,
+        isDashed: ld.isDashed,
+        min: count > 0 ? min : undefined,
+        max: count > 0 ? max : undefined,
+        avg: count > 0 ? sum / count : undefined,
+      };
+    });
+  }, [legendAsTable, lineData, graphResults]);
 
   // To enable backward compatibility, allow non-controlled usage of displayType
   const [displayTypeLocal, setDisplayTypeLocal] = useState(displayTypeProp);
@@ -671,8 +707,22 @@ function DBTimeChartComponent({
     queriedConfig,
   ]);
 
+  const legendTableFooter =
+    legendAsTable && seriesStats.length > 0 ? (
+      <LegendTable
+        seriesStats={seriesStats}
+        numberFormat={config.numberFormat}
+        selectedSeriesNames={selectedSeriesSet}
+        onToggleSeries={handleToggleSeries}
+      />
+    ) : undefined;
+
   return (
-    <ChartContainer title={title} toolbarItems={toolbarItemsMemo}>
+    <ChartContainer
+      title={title}
+      toolbarItems={toolbarItemsMemo}
+      aside={legendTableFooter}
+    >
       {isLoading && !data ? (
         <div className="d-flex h-100 w-100 align-items-center justify-content-center text-muted">
           Loading Chart Data...
@@ -743,7 +793,7 @@ function DBTimeChartComponent({
             onTimeRangeSelect={onTimeRangeSelect}
             referenceLines={referenceLines}
             setIsClickActive={setActiveClickPayloadIfSourceAvailable}
-            showLegend={showLegend}
+            showLegend={legendAsTable ? false : showLegend}
             timestampKey={timestampColumn?.name}
             previousPeriodOffsetSeconds={previousPeriodOffsetSeconds}
             selectedSeriesNames={selectedSeriesSet}

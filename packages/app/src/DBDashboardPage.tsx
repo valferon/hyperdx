@@ -63,6 +63,7 @@ import {
   IconPencil,
   IconPlayerPlay,
   IconRefresh,
+  IconTable,
   IconTags,
   IconTrash,
   IconUpload,
@@ -140,6 +141,7 @@ const Tile = forwardRef(
       granularity,
       onTimeRangeSelect,
       filters,
+      legendAsTable,
 
       // Properties forwarded by grid layout
       className,
@@ -161,6 +163,7 @@ const Tile = forwardRef(
       granularity: SQLInterval | undefined;
       onTimeRangeSelect: (start: Date, end: Date) => void;
       filters?: Filter[];
+      legendAsTable?: boolean;
 
       // Properties forwarded by grid layout
       className?: string;
@@ -386,6 +389,7 @@ const Tile = forwardRef(
                   showDisplaySwitcher={true}
                   config={queriedConfig}
                   onTimeRangeSelect={onTimeRangeSelect}
+                  legendAsTable={legendAsTable}
                   setDisplayType={displayType => {
                     onUpdateChart?.({
                       ...chart,
@@ -494,6 +498,7 @@ const Tile = forwardRef(
         onUpdateChart,
         source,
         dateRange,
+        legendAsTable,
       ],
     );
 
@@ -811,6 +816,7 @@ function DBDashboardPage({ presetConfig }: { presetConfig?: Dashboard }) {
   };
 
   const [isLive, setIsLive] = useState(false);
+  const [legendAsTable, setLegendAsTable] = useState(false);
 
   const { control, setValue, getValues, handleSubmit } = useForm<{
     granularity: SQLInterval | 'auto';
@@ -1020,6 +1026,7 @@ function DBDashboardPage({ presetConfig }: { presetConfig?: Dashboard }) {
             key={chart.id}
             chart={chart}
             dateRange={searchedTimeRange}
+            legendAsTable={legendAsTable}
             onEditClick={() => setEditedTile(chart)}
             granularity={
               isRefreshEnabled
@@ -1123,6 +1130,7 @@ function DBDashboardPage({ presetConfig }: { presetConfig?: Dashboard }) {
       whereLanguage,
       onTimeRangeSelect,
       filterQueries,
+      legendAsTable,
     ],
   );
 
@@ -1392,6 +1400,22 @@ function DBDashboardPage({ presetConfig }: { presetConfig?: Dashboard }) {
           }}
         />
         <GranularityPickerControlled control={control} name="granularity" />
+        <Tooltip
+          withArrow
+          label="Show legend as table with stats"
+          fz="xs"
+          color="gray"
+        >
+          <Button
+            onClick={() => setLegendAsTable(prev => !prev)}
+            size="sm"
+            variant={legendAsTable ? 'primary' : 'secondary'}
+            leftSection={<IconTable size={16} />}
+            title="Show legend as table with stats"
+          >
+            Legend
+          </Button>
+        </Tooltip>
         <Tooltip
           withArrow
           label={

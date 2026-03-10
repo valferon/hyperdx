@@ -1,0 +1,54 @@
+.legendTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  font-family: 'IBM Plex Mono', monospace;
+
+  th {
+    font-weight: 500;
+    color: var(--color-text-muted);
+    padding: 2px 8px;
+    text-align: right;
+    user-select: none;
+  }
+}
+
+.row {
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--color-bg-surface);
+  }
+
+  &:active {
+    opacity: 0.5;
+  }
+}
+
+.nameCol {
+  text-align: left;
+  padding: 2px 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.nameCellContent {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.statCol {
+  text-align: right;
+  padding: 2px 8px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.colorIndicator {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
