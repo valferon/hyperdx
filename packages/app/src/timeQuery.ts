@@ -34,6 +34,47 @@ import { usePrevious } from './utils';
 const LIVE_TAIL_TIME_QUERY = 'Live Tail';
 const LIVE_TAIL_REFRESH_INTERVAL_MS = 1000;
 
+const TIME_RANGE_STORAGE_KEY = 'hdx-global-time-range';
+
+type StoredTimeRange = {
+  from: number;
+  to: number;
+  displayValue: string;
+};
+
+function getStoredTimeRange(): StoredTimeRange | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = sessionStorage.getItem(TIME_RANGE_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed: StoredTimeRange = JSON.parse(raw);
+    if (
+      typeof parsed.from === 'number' &&
+      typeof parsed.to === 'number' &&
+      typeof parsed.displayValue === 'string' &&
+      isValid(new Date(parsed.from)) &&
+      isValid(new Date(parsed.to))
+    ) {
+      return parsed;
+    }
+  } catch {
+    // ignore corrupt data
+  }
+  return null;
+}
+
+function storeTimeRange(from: number, to: number, displayValue: string) {
+  if (typeof window === 'undefined') return;
+  try {
+    sessionStorage.setItem(
+      TIME_RANGE_STORAGE_KEY,
+      JSON.stringify({ from, to, displayValue }),
+    );
+  } catch {
+    // ignore storage errors
+  }
+}
+
 export const dateRangeToString = (range: [Date, Date], isUTC: boolean) => {
   return `${formatDate(range[0], {
     isUTC,
@@ -453,9 +494,16 @@ export function useNewTimeQuery({
   );
 
   const [searchedTimeRange, setSearchedTimeRange] = useState<[Date, Date]>(
-    from != null && to != null
-      ? [new Date(from), new Date(to)]
-      : initialTimeRange,
+    () => {
+      if (from != null && to != null) {
+        return [new Date(from), new Date(to)];
+      }
+      const stored = getStoredTimeRange();
+      if (stored) {
+        return [new Date(stored.from), new Date(stored.to)];
+      }
+      return initialTimeRange;
+    },
   );
 
   const onSearch = useCallback(
@@ -482,15 +530,26 @@ export function useNewTimeQuery({
         if (updateInput !== false) {
           _setDisplayedTimeInputValue(dateRangeStr);
         }
+        storeTimeRange(from, to, dateRangeStr);
       }
     } else if (from == null && to == null && isReady) {
-      setSearchedTimeRange(initialTimeRange);
-      const dateRangeStr = dateRangeToString(initialTimeRange, isUTC);
-      if (updateInput !== false) {
-        if (!showRelativeInterval) {
-          _setDisplayedTimeInputValue(dateRangeStr);
-        } else {
-          _setDisplayedTimeInputValue(initialDisplayValue ?? dateRangeStr);
+      const stored = getStoredTimeRange();
+      if (stored) {
+        const start = new Date(stored.from);
+        const end = new Date(stored.to);
+        setSearchedTimeRange([start, end]);
+        _setDisplayedTimeInputValue(stored.displayValue);
+        // Write to URL so page-level state (e.g. isLive) can react
+        setTimeRangeQuery({ from: stored.from, to: stored.to });
+      } else {
+        setSearchedTimeRange(initialTimeRange);
+        const dateRangeStr = dateRangeToString(initialTimeRange, isUTC);
+        if (updateInput !== false) {
+          if (!showRelativeInterval) {
+            _setDisplayedTimeInputValue(dateRangeStr);
+          } else {
+            _setDisplayedTimeInputValue(initialDisplayValue ?? dateRangeStr);
+          }
         }
       }
     }
@@ -504,6 +563,7 @@ export function useNewTimeQuery({
     showRelativeInterval,
     _setDisplayedTimeInputValue,
     updateInput,
+    setTimeRangeQuery,
   ]);
 
   return {

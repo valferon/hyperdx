@@ -931,7 +931,7 @@ function DBSearchPage() {
   const [displayedTimeInputValue, setDisplayedTimeInputValue] =
     useState('Live Tail');
 
-  const { isReady, searchedTimeRange, onSearch, onTimeRangeSelect } =
+  const { isReady, searchedTimeRange, onSearch, onTimeRangeSelect, from, to } =
     useNewTimeQuery({
       initialDisplayValue: 'Live Tail',
       initialTimeRange: defaultTimeRange,
@@ -939,6 +939,21 @@ function DBSearchPage() {
       setDisplayedTimeInputValue,
       updateInput: !isLive,
     });
+
+  // Disable Live Tail once on initial load when a time range was restored
+  const hasHandledRestoredTimeRange = useRef(false);
+  useEffect(() => {
+    if (
+      !hasHandledRestoredTimeRange.current &&
+      isReady &&
+      from != null &&
+      to != null &&
+      isLive
+    ) {
+      hasHandledRestoredTimeRange.current = true;
+      setIsLive(false);
+    }
+  }, [isReady, from, to, isLive, setIsLive]);
 
   // Sync url state back with form state
   // (ex. for history navigation)
